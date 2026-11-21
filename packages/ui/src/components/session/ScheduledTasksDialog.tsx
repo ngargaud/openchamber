@@ -43,7 +43,8 @@ import { CHAT_DRAFT_PROJECT_ID } from '@/lib/chatDirectories';
 import { isVSCodeRuntime } from '@/lib/desktop';
 import { createTaskRequestGate, mayCommitTaskList, mayEndTaskLoad } from './scheduledTasksRequests';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
-import { formatSchedule } from './scheduledTaskSchedule';
+import { filterTasksByMode, formatTaskSummary } from './scheduledTaskViewHelpers';
+import { ScheduledTaskRunNowButton } from './ScheduledTaskRunNowButton';
 
 
 const TaskModelLine: React.FC<{ task: ScheduledTask }> = ({ task }) => {
@@ -164,9 +165,8 @@ const toneStyle = (tone: StatusTone): React.CSSProperties => {
 
 export type ScheduledTasksLeaveReason = 'session' | 'file';
 
-export function ScheduledTasksView({ layout, onLeave }: {
-  layout: 'page' | 'mobile';
-  onLeave: (reason: ScheduledTasksLeaveReason) => void;
+export function ScheduledTasksView({ layout, onLeave, mode = 'scheduled' }: {
+  layout: 'page' | 'mobile'; onLeave: (reason: ScheduledTasksLeaveReason) => void; mode?: 'scheduled' | 'event';
 }) {
   const { t } = useI18n();
   const timeFormatPreference = useUIStore((state) => state.timeFormatPreference);
@@ -236,8 +236,8 @@ export function ScheduledTasksView({ layout, onLeave }: {
       return;
     }
     listOwnerRef.current = projectID;
-    setTasks(nextTasks);
-  }, []);
+    setTasks(filterTasksByMode(nextTasks, mode));
+  }, [mode]);
 
   const reloadTasks = React.useCallback(async (projectID: string, options?: { silent?: boolean }) => {
     if (!projectID) {
@@ -582,7 +582,7 @@ export function ScheduledTasksView({ layout, onLeave }: {
                     {task.name}
                   </div>
                   <div className="typography-micro truncate text-muted-foreground">
-                    {formatSchedule(task.schedule, t)}
+                    {formatTaskSummary(task, t)}
                   </div>
                   <div className="typography-micro flex min-w-0 items-center gap-1 text-muted-foreground" title={task.execution.useDefaults ? undefined : `${task.execution.providerID ?? ''}/${task.execution.modelID ?? ''}`}>
                     <TaskModelLine task={task} />
@@ -694,14 +694,7 @@ export function ScheduledTasksView({ layout, onLeave }: {
                         <Icon name="chat-1" className="h-4 w-4" /> {t('sessions.scheduledTasks.dialog.actions.openSession')}
                       </Button>
                     ) : null}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleRunNow(task)}
-                      disabled={isBusy}
-                    >
-                      <Icon name="play" className="h-4 w-4" /> {t('sessions.scheduledTasks.dialog.actions.runNow')}
-                    </Button>
+                    {!task.mqtt ? <ScheduledTaskRunNowButton disabled={isBusy} onRun={() => void handleRunNow(task)} /> : null}
                     <Button
                       variant="outline"
                       size="sm"
@@ -785,6 +778,7 @@ export function ScheduledTasksView({ layout, onLeave }: {
         task={editorTask}
         projectId={editorOwnerRef.current || selectedProjectID}
         scopes={editorScopes}
+        mode={mode}
         onOpenChange={setEditorOpen}
         onSave={handleSaveTask}
       />
@@ -796,5 +790,5 @@ export function ScheduledTasksDialog() {
   const open = useUIStore((state) => state.isScheduledTasksDialogOpen);
   const setOpen = useUIStore((state) => state.setScheduledTasksDialogOpen);
   const leave = React.useCallback(() => setOpen(false), [setOpen]);
-  return open ? <ScheduledTasksView layout="page" onLeave={leave} /> : null;
+  return open ? <ScheduledTasksView layout="page" mode="scheduled" onLeave={leave} /> : null;
 }

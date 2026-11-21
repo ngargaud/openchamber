@@ -126,7 +126,7 @@ export const createExistingSessionTasks = ({ projectConfigRuntime, messageQueueR
     return result.task;
   };
 
-  const run = async (projectId: string, task: ScheduledTask, reason: 'manual' | 'scheduled', scheduledFor?: number, nextRunAt?: number | null) => {
+  const run = async (projectId: string, task: ScheduledTask, reason: 'manual' | 'scheduled' | 'mqtt', scheduledFor?: number, nextRunAt?: number | null) => {
     const triggeredAt = Date.now();
     const key = `${projectId}:${task.id}`;
     if (admissions.has(key)) {

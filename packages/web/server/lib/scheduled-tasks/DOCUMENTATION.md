@@ -1,5 +1,9 @@
 # Scheduled Tasks module
 
+> MQTT-triggered tasks (tasks with an `mqtt` field instead of a `schedule`) are
+> handled by the parallel `packages/web/server/lib/mqtt/` manager, which reuses
+> this module's execution path via `runtime.triggerTask(projectID, taskID, 'mqtt', payload, topic)`.
+
 Server-owned scheduled task runtime and routes for OpenChamber-only automation.
 
 ## Scope
@@ -31,6 +35,9 @@ Server-owned scheduled task runtime and routes for OpenChamber-only automation.
   newly due tasks, keeping recovery separate from new runs.
 - Named-model validation accepts either the catalog's display `id` or upstream
   `modelID` within the selected provider, matching session-route selection.
+- An event task has no schedule and no "Run now" action. It reaches the same
+  execution path as a scheduled task with trigger reason `mqtt`; prompt values
+  come from the message payload and topic.
 
 ## Decisions
 

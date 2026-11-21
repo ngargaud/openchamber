@@ -134,7 +134,7 @@ describe('SidebarHeader', () => {
     expect(items[0]).toBe('Select sessions');
     expect(items).toContain('Collapse all');
     expect(items).toContain('Mark all as read');
-    for (const page of ['Issues and PRs', 'Scheduled tasks', 'Archive', 'Stats', 'Overview']) expect(items).not.toContain(page);
+    for (const page of ['Issues and PRs', 'Scheduled tasks', 'Event tasks', 'Archive', 'Stats', 'Overview']) expect(items).not.toContain(page);
     expect(items.some((item) => item?.startsWith('Customize sections'))).toBe(false);
   });
 

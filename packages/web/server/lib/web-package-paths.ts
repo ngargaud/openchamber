@@ -16,6 +16,8 @@ interface WebPackagePaths {
   serverEntry: string;
 }
 
+const WEB_PACKAGE_NAMES = new Set(['@openchamber/web', '@ngargaud/openchamber-web']);
+
 const pathsByDirectory = new Map<string, Readonly<WebPackagePaths>>();
 
 const isMissingFileError = (cause: unknown): cause is NodeJS.ErrnoException =>
@@ -36,7 +38,7 @@ export function getWebPackagePaths(moduleUrl: string | URL = import.meta.url) {
     } catch (error) {
       if (!isMissingFileError(error)) throw error;
     }
-    if (manifest?.name === '@openchamber/web') {
+    if (manifest && WEB_PACKAGE_NAMES.has(manifest.name)) {
       const paths = Object.freeze({
         root: directory,
         packageJson,
@@ -49,7 +51,7 @@ export function getWebPackagePaths(moduleUrl: string | URL = import.meta.url) {
     }
     const parent = path.dirname(directory);
     if (parent === directory) {
-      throw new Error(`Could not find @openchamber/web package.json above ${fileURLToPath(moduleUrl)}`);
+      throw new Error(`Could not find an OpenChamber web package.json above ${fileURLToPath(moduleUrl)}`);
     }
     directory = parent;
   }

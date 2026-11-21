@@ -184,4 +184,47 @@ describe('i18n dictionaries', () => {
       }
     }
   });
+
+  test('MQTT settings copy is translated and explains WebSocket broker URLs in every locale', () => {
+    const translatedKeys = [
+      'sessions.scheduledTasks.editor.descriptionEvent',
+      'sessions.scheduledTasks.editor.mqtt.broker.custom',
+      'sessions.scheduledTasks.editor.mqtt.broker.placeholder',
+      'sessions.scheduledTasks.editor.mqtt.handleRetained.label',
+      'sessions.scheduledTasks.editor.mqtt.payloadTemplate.label',
+      'sessions.scheduledTasks.editor.mqtt.topic.label',
+      'sessions.scheduledTasks.editor.mqtt.topicTemplate.label',
+      'sessions.scheduledTasks.editor.taskName.placeholderEvent',
+      'sessions.scheduledTasks.editor.title.editEvent',
+      'sessions.scheduledTasks.editor.title.newEvent',
+      'sessions.scheduledTasks.editor.triggerType.label',
+      'sessions.scheduledTasks.editor.triggerType.schedule',
+      'sessions.scheduledTasks.editor.validation.topicRequired',
+      'sessions.sidebar.header.actions.eventTasks',
+      'settings.mqtt.action.add',
+      'settings.mqtt.action.test',
+      'settings.mqtt.action.testing',
+      'settings.mqtt.description',
+      'settings.mqtt.empty',
+      'settings.mqtt.field.password',
+      'settings.mqtt.field.url',
+      'settings.mqtt.field.url.hint',
+      'settings.mqtt.field.username',
+      'settings.mqtt.section.add',
+      'settings.mqtt.section.saved',
+      'settings.mqtt.title',
+      'settings.mqtt.toast.saved',
+      'settings.mqtt.toast.testFailed',
+      'settings.mqtt.toast.testOk',
+      'settings.mqtt.toast.urlRequired',
+    ] as const;
+    for (const [locale, dictionary] of Object.entries(localeDictionaries)) {
+      expect(`${locale} field.url.hint: ${dictionary['settings.mqtt.field.url.hint']}`).toContain('ws://');
+      expect(`${locale} field.url.hint: ${dictionary['settings.mqtt.field.url.hint']}`).toContain('wss://');
+      if (locale === 'en') continue;
+      for (const key of translatedKeys) {
+        expect(`${locale} ${key}: ${dictionary[key]}`).not.toBe(`${locale} ${key}: ${enDict[key]}`);
+      }
+    }
+  });
 });

@@ -77,6 +77,15 @@ export interface ControlInput {
   all?: unknown;
   children?: unknown;
   query?: unknown;
+  topic?: unknown;
+  topicTemplate?: unknown;
+  qos?: unknown;
+  broker?: unknown;
+  username?: unknown;
+  password?: unknown;
+  payloadTemplate?: unknown;
+  handleRetained?: unknown;
+  minIntervalMs?: unknown;
   provider?: unknown;
   providerId?: unknown;
   offset?: unknown;

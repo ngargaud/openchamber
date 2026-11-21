@@ -10,6 +10,10 @@
 - Rotating a phone never changes its surface, so it never reloads the document.
 - Tablets and fine-pointer touch desktops follow the viewport width: a coarse-pointer tablet is mobile up to 768 CSS px wide, so rotating it can still reload into the other shell.
 
+- `mqttBrokers.ts` parses saved brokers with a Zod schema before the UI uses
+  them. A malformed localStorage entry becomes an empty list, and a write
+  broadcasts `openchamber:mqtt-brokers-changed`.
+
 ## Decisions
 
 ### Why a phone is recognized by the screen's short side and not by the viewport width

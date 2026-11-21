@@ -1,0 +1,125 @@
+name: Publish npm package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish without the leading v'
+        required: true
+        type: string
+      dry_run:
+        description: 'Build and check the tarball without staging'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version: $version" >&2
+            exit 1
+          fi
+          if [[ "$version" == *-* ]]; then
+            dist_tag="next"
+          else
+            dist_tag="latest"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Set publish manifest
+        shell: bash
+        env:
+          PACKAGE_NAME: '@ngargaud/openchamber-web'
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const file = "packages/web/package.json";
+            const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+            const sdk = JSON.parse(fs.readFileSync("packages/sdk/package.json", "utf8"));
+            pkg.name = process.env.PACKAGE_NAME;
+            pkg.version = process.env.VERSION;
+            if (pkg.dependencies?.["@openchamber/sdk"] === "workspace:*") {
+              pkg.dependencies["@openchamber/sdk"] = sdk.version;
+            }
+            if (pkg.dependencies?.["@openchamber/sdk"] === "workspace:*") {
+              throw new Error("SDK dependency was not resolved");
+            }
+            fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+          '
+
+      - name: Check npm tarball
+        shell: bash
+        working-directory: packages/web
+        env:
+          PACKAGE_NAME: '@ngargaud/openchamber-web'
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bun pm pack
+          node -e '
+            const fs = require("node:fs");
+            const { execFileSync } = require("node:child_process");
+            const tarball = fs.readdirSync(".").find((name) => name.endsWith(".tgz"));
+            if (!tarball) throw new Error("No npm tarball was created");
+            const manifest = execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" });
+            const pkg = JSON.parse(manifest);
+            if (pkg.name !== process.env.PACKAGE_NAME) throw new Error(`Unexpected package name: ${pkg.name}`);
+            if (pkg.version !== process.env.VERSION) throw new Error(`Unexpected package version: ${pkg.version}`);
+            const sdk = pkg.dependencies?.["@openchamber/sdk"];
+            if (!sdk || sdk === "workspace:*") throw new Error(`Unresolved SDK dependency: ${sdk}`);
+            console.log(`Checked ${tarball}: ${pkg.name}@${pkg.version}`);
+          '
+
+      - name: Install npm CLI with staged publishing support
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: npm install -g npm@latest
+
+      - name: Stage package on npm
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        working-directory: packages/web
+        run: npm stage publish --access public --tag "$DIST_TAG"
+        env:
+          DIST_TAG: ${{ steps.version.outputs.dist_tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -69,11 +69,26 @@ describe('web package paths', () => {
     expect(findWebCheckoutRoot(root)).toBeNull();
   });
 
+  it('resolves the published fork package from an emitted build directory', async () => {
+    const root = path.join(temporaryDirectory(), 'node_modules/@ngargaud/openchamber-web');
+    writePackage(root, {
+      ...webManifest,
+      name: '@ngargaud/openchamber-web',
+      main: './build/server/index.js',
+      bin: { openchamber: './build/bin/cli.js' },
+    });
+    const modulePath = path.join(root, 'build/server/lib/web-package-paths.js');
+    fs.mkdirSync(path.dirname(modulePath), { recursive: true });
+    fs.writeFileSync(modulePath, stripTypeScriptTypes(fs.readFileSync(new URL('./web-package-paths.ts', import.meta.url), 'utf8')));
+    const { webPackagePaths } = await import(pathToFileURL(modulePath).href);
+    expectPaths(webPackagePaths, root, 'build');
+  });
+
   it('reports a clear error when no matching manifest exists above the file', () => {
     const root = temporaryDirectory();
     writePackage(root, { name: 'another-package' });
     expect(() => getWebPackagePaths(pathToFileURL(path.join(root, 'nested/entry.js'))))
-      .toThrow('Could not find @openchamber/web package.json above');
+      .toThrow('Could not find an OpenChamber web package.json above');
   });
 
   it('keeps Node path errors for malformed entry fields in its named manifest', () => {

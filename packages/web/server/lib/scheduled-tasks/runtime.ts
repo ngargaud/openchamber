@@ -12,6 +12,8 @@ import { stat } from 'node:fs/promises';
 import { readProcessInstance as readProcessInstanceDefault } from './process-instance.js';
 import { AUTO_MODEL_REF, isAutoModel } from '../routing/defaults.js';
 import { controlErrorFields } from '../openchamber-control/error.js';
+import { createMqttTaskRuntime } from '../mqtt/task-runtime.js';
+import type { JsonValue } from '../shared/json-values.js';
 import type { ExistingSessionDependencies, ExistingSessionTaskRunEvent } from './existing-session.js';
 import type { ScheduledTask, ScheduledTaskInput, ScheduledTaskStore, ScheduledWorktreeCleanup, ScheduledTaskStateResult } from '../projects/contracts.js';
 import type { ScheduledWorktree, ScheduledWorktreeBridge, RemoveScheduledWorktreeInput } from './worktree-bridge.js';
@@ -42,6 +44,7 @@ export interface ScheduledTasksDependencies extends Omit<ExistingSessionDependen
   removeTaskWorktree?: ScheduledWorktreeBridge['remove'] | null;
   isGitRepository?: ScheduledWorktreeBridge['isGitRepository'] | null;
   logger?: Pick<Console, 'warn' | 'info'>;
+  onTasksChanged?: () => void;
   maxGlobalConcurrency?: number;
   maxProjectConcurrency?: number;
   maxRunDurationMs?: number;
@@ -89,7 +92,7 @@ export interface ScheduledTaskRunResult {
   isolation?: RunIsolation;
 }
 
-type RunReason = 'manual' | 'scheduled';
+type RunReason = 'manual' | 'scheduled' | 'mqtt';
 type Mutable<Value> = { -readonly [Key in keyof Value]: Value[Key] };
 type ScheduledSessionInput = Mutable<NonNullable<Parameters<ReturnType<typeof OpenCode.make>['session']['create']>[0]>>;
 type ScheduledSessionModel = Mutable<NonNullable<ScheduledSessionInput['model']>>;
@@ -445,6 +448,7 @@ export const createScheduledTasksRuntime = (deps: ScheduledTasksDependencies) =>
   const runningCountByProject = new Map<string, number>();
   let runningGlobalCount = 0;
   const queue: { projectID: string; taskID: string; reason: RunReason; scheduledFor?: number }[] = [];
+  const mqttTaskRuntime = createMqttTaskRuntime({ tasksByProject, runningTaskKeys, queuedTaskKeys, buildTaskKey, runTask: (...args) => runTask(...args) });
 
   const clearTimerForKey = (taskKey: string) => {
     const timer = timersByTaskKey.get(taskKey);
@@ -586,6 +590,7 @@ export const createScheduledTasksRuntime = (deps: ScheduledTasksDependencies) =>
       await syncTaskSchedule(projectID, task);
     }
 
+    try { deps.onTasksChanged?.(); } catch (error) { void error; }
     return tasks;
   };
 
@@ -1022,28 +1027,22 @@ export const createScheduledTasksRuntime = (deps: ScheduledTasksDependencies) =>
     scheduleFutureRun(projectID, taskID, computedNext, base);
   };
 
-  const runTask = async (projectID: string, taskID: string, reason: RunReason, scheduledFor?: number): Promise<ScheduledTaskRunResult> => {
+  const runTask = async (projectID: string, taskID: string, reason: RunReason, scheduledFor?: number, triggerPayload?: JsonValue, triggerTopic?: string): Promise<ScheduledTaskRunResult> => {
     const taskMap = tasksByProject.get(projectID);
     const task = taskMap?.get(taskID);
-    if (!task || (reason !== 'manual' && !task.enabled)) {
-      return { ok: false, skipped: true };
-    }
-
+    if (!task || (reason !== 'manual' && !task.enabled)) return { ok: false, skipped: true };
+    const effectiveTask = mqttTaskRuntime.renderEffectiveTask(task, reason, triggerPayload, triggerTopic);
     if (task.targetSessionId) {
       if (!existingSessionTasks) return { ok: false, error: 'Existing-session scheduling is unavailable', statusCode: 503 };
       const nextRunAt = computeNextRunAt(task, Math.max(Date.now(), (scheduledFor ?? 0) + 1));
-      const result = await existingSessionTasks.run(projectID, task, reason, scheduledFor, nextRunAt);
+      const result = await existingSessionTasks.run(projectID, effectiveTask, reason, scheduledFor, nextRunAt);
       if (reason === 'scheduled') {
-        if (task.schedule.kind === 'once' && result.task && !result.skipped) {
+        if (task.schedule?.kind === 'once' && result.task && !result.skipped) {
           try {
             const consumed = await projectConfigRuntime.upsertScheduledTask(projectID, { ...result.task, enabled: false });
             updateInMemoryTask(projectID, consumed.task);
           } catch (consumeError) {
-            logger.warn?.('[ScheduledTasks] failed to consume one-time task', {
-              projectID,
-              taskID,
-              error: safeErrorMessage(consumeError),
-            });
+            logger.warn?.('[ScheduledTasks] failed to consume one-time task', { projectID, taskID, error: safeErrorMessage(consumeError) });
           }
         } else scheduleFutureRun(projectID, taskID, nextRunAt);
       }
@@ -1232,7 +1231,7 @@ export const createScheduledTasksRuntime = (deps: ScheduledTasksDependencies) =>
       };
 
       try {
-        const runPromise = runTaskWithWatchdog(projectID, task, reason, recordCreatedSession);
+        const runPromise = runTaskWithWatchdog(projectID, effectiveTask, reason, recordCreatedSession);
         let timeoutID: ReturnType<typeof setTimeout> | undefined;
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutID = setTimeout(() => {
@@ -1537,6 +1536,7 @@ export const createScheduledTasksRuntime = (deps: ScheduledTasksDependencies) =>
     syncAllProjects,
     syncProject,
     runNow,
+    triggerTask: mqttTaskRuntime.triggerTask, listMqttTasks: mqttTaskRuntime.listMqttTasks,
     getStatus,
     validateTarget: (...args: Parameters<ReturnType<typeof createExistingSessionTasks>['validateTarget']>) => {
       if (!existingSessionTasks) throw new TypeError("Cannot read properties of null (reading 'validateTarget')");

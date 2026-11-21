@@ -10,7 +10,7 @@ export type ScheduledTask = {
   targetSessionId?: string;
   loopFile?: string;
   loopApproval?: 'required' | 'outdated';
-  schedule: {
+  schedule?: {
     kind: 'daily' | 'weekly' | 'once' | 'cron';
     times?: string[];
     time?: string;
@@ -18,6 +18,18 @@ export type ScheduledTask = {
     weekdays?: number[];
     cron?: string;
     timezone?: string;
+  };
+  mqtt?: {
+    topic: string;
+    qos?: 0 | 1 | 2;
+    broker?: string;
+    username?: string;
+    password?: string;
+    payloadTemplate?: string;
+    topicTemplate?: string;
+    handleRetained?: boolean;
+    minIntervalMs?: number;
+    dedup?: boolean;
   };
   execution: {
     prompt: string;

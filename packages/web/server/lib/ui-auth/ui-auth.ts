@@ -821,12 +821,8 @@ export const createUiAuth = ({
 
   const respondUnauthorized = (req: Request, res: Response) => {
     res.status(401);
-    const acceptsJson = req.headers.accept?.includes('application/json');
-    if (acceptsJson || req.path?.startsWith('/api')) {
-      res.json({ error: 'UI authentication required', locked: true });
-    } else {
-      res.type('text/plain').send('Authentication required');
-    }
+    res.type('application/json');
+    res.json({ error: 'UI authentication required', locked: true });
   };
 
   const requireAuth = async (req: Request, res: Response, next: NextFunction) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { IconName } from '@/components/icon/icons';
 import { useGuestPages } from '@/hooks/useGuestSurfaces';
+import { useHasMqttBrokers } from '@/hooks/useHasMqttBrokers';
 import { useI18n } from '@/lib/i18n';
 import { guestPackageIconSrc, resolveGuestIconName } from '@/lib/guests/icon';
 import { getRuntimeUrlResolver } from '@/lib/runtime-url';
@@ -8,13 +9,14 @@ import type { ShortcutActionId } from '@/lib/shortcuts';
 import { useEnterpriseMode } from '@/stores/useEnterprisePolicyStore';
 import { useUIStore } from '@/stores/useUIStore';
 
-type BuiltinPageId = 'overview' | 'source-board' | 'scheduled' | 'archive' | 'stats' | 'integrations';
+type BuiltinPageId = 'overview' | 'source-board' | 'scheduled' | 'event-tasks' | 'archive' | 'stats' | 'integrations';
 
 function builtinPageIcon(id: BuiltinPageId): IconName {
   switch (id) {
     case 'overview': return 'compass-3';
     case 'source-board': return 'git-pull-request';
     case 'scheduled': return 'calendar-schedule';
+    case 'event-tasks': return 'plug';
     case 'archive': return 'archive';
     case 'stats': return 'bar-chart';
     case 'integrations': return 'apps-2-add';
@@ -37,6 +39,8 @@ export const useSidebarPages = (enabled: boolean): readonly SidebarPage[] => {
   const isOverviewOpen = useUIStore((state) => state.isOverviewOpen);
   const isSourceBoardOpen = useUIStore((state) => state.isSourceBoardOpen);
   const isScheduledOpen = useUIStore((state) => state.isScheduledTasksDialogOpen);
+  const isEventTasksOpen = useUIStore((state) => state.isEventTasksDialogOpen);
+  const hasMqttBrokers = useHasMqttBrokers();
   const isArchiveOpen = useUIStore((state) => state.isArchivePageOpen);
   const isUsageOpen = useUIStore((state) => state.isUsageStatsPageOpen);
   const isIntegrationsCatalogOpen = useUIStore((state) => state.isIntegrationsCatalogOpen);
@@ -57,6 +61,11 @@ export const useSidebarPages = (enabled: boolean): readonly SidebarPage[] => {
     pages.push(
       builtin('source-board', t('sourceBoard.title'), isSourceBoardOpen, (open) => ui().setSourceBoardOpen(open), 'toggle_source_board'),
       builtin('scheduled', t('sessions.sidebar.header.actions.scheduledTasks'), isScheduledOpen, (open) => ui().setScheduledTasksDialogOpen(open)),
+    );
+    if (hasMqttBrokers) {
+      pages.push(builtin('event-tasks', t('sessions.sidebar.header.actions.eventTasks'), isEventTasksOpen, (open) => ui().setEventTasksDialogOpen(open)));
+    }
+    pages.push(
       builtin('archive', t('sessions.sidebar.nav.archive'), isArchiveOpen, (open) => ui().setArchivePageOpen(open), 'open_archive'),
       builtin('stats', t('usageStats.openAction'), isUsageOpen, (open) => ui().setUsageStatsPageOpen(open)),
     );
@@ -76,5 +85,5 @@ export const useSidebarPages = (enabled: boolean): readonly SidebarPage[] => {
       });
     }
     return pages;
-  }, [enabled, enterpriseMode, guestPages, isArchiveOpen, isIntegrationsCatalogOpen, isOverviewOpen, isScheduledOpen, isSourceBoardOpen, isUsageOpen, openGuestPageId, overviewAvailable, t]);
+  }, [enabled, enterpriseMode, guestPages, hasMqttBrokers, isArchiveOpen, isEventTasksOpen, isIntegrationsCatalogOpen, isOverviewOpen, isScheduledOpen, isSourceBoardOpen, isUsageOpen, openGuestPageId, overviewAvailable, t]);
 };

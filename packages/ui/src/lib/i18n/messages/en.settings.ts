@@ -126,6 +126,7 @@ export const settingsDict = {
   'settings.page.agents.title': 'Agents',
   'settings.page.commands.title': 'Commands',
   'settings.page.mcp.title': 'MCP',
+  'settings.page.mqtt.title': 'MQTT',
   'settings.page.plugins.title': 'Plugins',
   'settings.page.skills.title': 'Skills',
   'settings.page.skillsCatalog.title': 'Skills catalog',

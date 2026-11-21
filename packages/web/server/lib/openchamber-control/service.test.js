@@ -108,6 +108,27 @@ describe('persisted schedule.update patches', () => {
     } finally { await fixture.cleanup(); }
   });
 
+  it('replaces the schedule with an MQTT trigger and clears it when converting back', async () => {
+    const fixture = await createPersistedScheduleService({ kind: 'daily', times: ['09:00'] });
+    try {
+      const event = await fixture.update({
+        topic: 'events/#', broker: 'ws://mqtt:1883', username: 'reader', password: 'test', qos: 2,
+      });
+      expect(event.task.mqtt).toMatchObject({ topic: 'events/#', broker: 'ws://mqtt:1883', qos: 2 });
+      expect(event.task.schedule).toBeUndefined();
+      const savedEvent = await fixture.read();
+      expect(savedEvent.scheduledTasks[0].mqtt).toMatchObject({ topic: 'events/#', password: 'test' });
+      expect(savedEvent.scheduledTasks[0].schedule).toBeUndefined();
+
+      const scheduled = await fixture.update({ daily: '10:00' });
+      expect(scheduled.task.mqtt).toBeUndefined();
+      expect(scheduled.task.schedule).toMatchObject({ kind: 'daily', times: ['10:00'] });
+      const savedScheduled = await fixture.read();
+      expect(savedScheduled.scheduledTasks[0].mqtt).toBeUndefined();
+      expect(savedScheduled.scheduledTasks[0].schedule).toMatchObject({ kind: 'daily', times: ['10:00'] });
+    } finally { await fixture.cleanup(); }
+  });
+
   it.each(['', ' ', '24:00', '12:60', '9:00', 'noon', null, 900])('rejects invalid time %j without changing bytes and permits recovery', async (time) => {
     const fixture = await createPersistedScheduleService({ kind: 'once', date: '2099-05-06', time: '09:00' });
     try {

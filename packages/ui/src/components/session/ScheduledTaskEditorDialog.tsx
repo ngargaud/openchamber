@@ -29,147 +29,19 @@ import {
   type ScheduledTaskDraft,
 } from './scheduledTaskEditorDraft';
 import { ScheduledTaskTargetPicker } from './ScheduledTaskTargetPicker';
+import { CronScheduleSection, FieldLabel } from './ScheduledTaskEditorFields';
+import { TIMEZONE_OPTIONS } from './scheduledTaskEditorOptions';
+import { MqttTriggerFields } from './MqttTriggerFields';
+import { applyDefaultMqttBroker } from './mqttDraft';
 import { useScheduledTaskTargets } from './useScheduledTaskTargets';
 import { useI18n } from '@/lib/i18n';
-import { isValidCronExpression, getNextRuns, CRON_EXAMPLES } from '@/lib/cron';
-import { canonicalizeTimezone } from '@/lib/timezones';
-import { listModelVariantIds, type ModelVariantSource } from '@/lib/modelVariants';
+import { modelVariantNames } from '@/lib/modelVariants';
 import { SettingsStackedField } from '@/components/sections/shared/SettingsSection';
 import { DatePicker, TimePill } from '@/components/ui/date-time';
 import { useCalendarPreferences } from '@/components/ui/useCalendarPreferences';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 
 const EDITOR_TOGGLE_BUTTON_CLASS = 'flex h-6 w-6 cursor-pointer items-center justify-center text-foreground transition-none outline-none focus:outline-none flex-shrink-0';
-
-const TIMEZONE_OPTIONS = (() => {
-  if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
-    return [...new Set(Intl.supportedValuesOf('timeZone').map(canonicalizeTimezone))];
-  }
-  return [
-    'UTC',
-    'Europe/Kyiv',
-    'Europe/London',
-    'Europe/Berlin',
-    'America/New_York',
-    'America/Los_Angeles',
-    'Asia/Tokyo',
-  ];
-})();
-
-const FieldLabel: React.FC<{
-  htmlFor?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}> = ({ htmlFor, required, children }) => (
-  <div className="flex items-center gap-1.5">
-    <label htmlFor={htmlFor} className="typography-meta font-medium text-foreground">
-      {children}
-      {required && <span className="ms-0.5 text-destructive">*</span>}
-    </label>
-  </div>
-);
-
-const CronScheduleSection: React.FC<{
-  draft: ScheduledTaskDraft;
-  setDraft: React.Dispatch<React.SetStateAction<ScheduledTaskDraft>>;
-  locale: string;
-  t: ReturnType<typeof useI18n>['t'];
-}> = ({ draft, setDraft, locale, t }) => {
-  const cronExpression = draft.schedule.cronExpression;
-  const cronValidation = React.useMemo(
-    () => (cronExpression.trim() ? isValidCronExpression(cronExpression) : null),
-    [cronExpression],
-  );
-  const nextRuns = React.useMemo(() => {
-    if (!cronValidation?.valid || !cronExpression.trim()) {
-      return [];
-    }
-    return getNextRuns(cronExpression, draft.schedule.timezone);
-  }, [cronExpression, cronValidation, draft.schedule.timezone]);
-
-  const formatNextRun = React.useCallback(
-    (date: Date) => new Intl.DateTimeFormat(locale, {
-      timeZone: draft.schedule.timezone,
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date),
-    [locale, draft.schedule.timezone],
-  );
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <FieldLabel htmlFor="sched-cron" required>{t('sessions.scheduledTasks.editor.cronExpression.label')}</FieldLabel>
-        <Input
-          id="sched-cron"
-          value={cronExpression}
-          onChange={(event) => setDraft((prev) => ({
-            ...prev,
-            schedule: { ...prev.schedule, cronExpression: event.target.value },
-          }))}
-          placeholder={t('sessions.scheduledTasks.editor.cronExpression.placeholder')}
-          className="w-full max-w-xs font-mono"
-        />
-        {cronValidation && !cronValidation.valid && cronExpression.trim() ? (
-          <span className="typography-micro text-destructive">
-            {t('sessions.scheduledTasks.editor.validation.cronInvalid')}
-          </span>
-        ) : null}
-      </div>
-
-      {nextRuns.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <span className="typography-meta text-muted-foreground">{t('sessions.scheduledTasks.editor.cronExpression.nextRuns')}</span>
-          <span className="typography-micro text-foreground">
-            {nextRuns.map(formatNextRun).join(', ')}
-          </span>
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-1">
-        <span className="typography-meta text-muted-foreground">{t('sessions.scheduledTasks.editor.cronExpression.examples')}</span>
-        <div className="flex flex-wrap gap-1.5">
-          {CRON_EXAMPLES.map((example) => (
-            <button
-              key={example.expression}
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 typography-micro text-foreground hover:bg-interactive-hover"
-              onClick={() => setDraft((prev) => ({
-                ...prev,
-                schedule: { ...prev.schedule, cronExpression: example.expression },
-              }))}
-            >
-              <span className="font-mono">{example.expression}</span>
-              <span className="text-muted-foreground">{t(example.labelKey as Parameters<typeof t>[0])}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <FieldLabel>{t('sessions.scheduledTasks.editor.timezone.label')}</FieldLabel>
-        <Select
-          value={draft.schedule.timezone}
-          onValueChange={(timezone) => {
-            setDraft((prev) => ({
-              ...prev,
-              schedule: { ...prev.schedule, timezone },
-            }));
-          }}
-        >
-          <SelectTrigger className="w-fit max-w-full"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {TIMEZONE_OPTIONS.map((timezone) => (
-              <SelectItem key={timezone} value={timezone}>{timezone}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
-};
 
 export type ScheduledTaskScopeOption = { id: string; label: React.ReactNode };
 
@@ -178,10 +50,12 @@ export function ScheduledTaskEditorDialog(props: {
   task: ScheduledTask | null;
   projectId: string;
   scopes: ScheduledTaskScopeOption[];
+  mode?: 'scheduled' | 'event';
   onOpenChange: (open: boolean) => void;
   onSave: (draft: Partial<ScheduledTask>, projectId: string) => Promise<void>;
 }) {
   const { open, task, scopes, onOpenChange, onSave } = props;
+  const mode = props.mode ?? 'scheduled';
   const { t, locale } = useI18n();
   const [projectId, setProjectId] = React.useState(props.projectId);
   React.useEffect(() => {
@@ -232,25 +106,24 @@ export function ScheduledTaskEditorDialog(props: {
     if (!open) {
       return;
     }
-    setDraft(
-      toDraft(task, {
-        providerID: currentProviderID,
-        modelID: currentModelID,
-        variant: currentVariant,
-        agent: currentAgentName,
-      })
-    );
+    const nextDraft = applyDefaultMqttBroker(toDraft(task, {
+      providerID: currentProviderID,
+      modelID: currentModelID,
+      variant: currentVariant,
+      agent: currentAgentName,
+    }), mode);
+    nextDraft.triggerType = mode === 'event' ? 'mqtt' : 'schedule';
+    setDraft(nextDraft);
     setShowCommandAutocomplete(false);
     setShowFileMention(false);
     setCommandQuery('');
     setMentionQuery('');
-  }, [open, task, currentProviderID, currentModelID, currentVariant, currentAgentName]);
+  }, [mode, open, task, currentProviderID, currentModelID, currentVariant, currentAgentName]);
 
-  const variantOptions = React.useMemo(() => {
-    const provider = providers.find((item) => item.id === draft.execution.providerID);
-    const model = provider?.models?.find((item) => item.id === draft.execution.modelID) as { variants?: ModelVariantSource } | undefined;
-    return listModelVariantIds(model?.variants);
-  }, [providers, draft.execution.providerID, draft.execution.modelID]);
+  const variantOptions = React.useMemo(
+    () => modelVariantNames(providers.find((item) => item.id === draft.execution.providerID)?.models?.find((item) => item.id === draft.execution.modelID)),
+    [providers, draft.execution.providerID, draft.execution.modelID],
+  );
   const hasVariantOptions = variantOptions.length > 0;
   const selectedVariantValue = React.useMemo(() => {
     if (!hasVariantOptions) {
@@ -564,8 +437,10 @@ export function ScheduledTaskEditorDialog(props: {
     );
   }, []);
 
-  const title = task ? t('sessions.scheduledTasks.editor.title.edit') : t('sessions.scheduledTasks.editor.title.new');
-  const description = t('sessions.scheduledTasks.editor.description');
+  const title = task
+    ? t(mode === 'event' ? 'sessions.scheduledTasks.editor.title.editEvent' : 'sessions.scheduledTasks.editor.title.edit')
+    : t(mode === 'event' ? 'sessions.scheduledTasks.editor.title.newEvent' : 'sessions.scheduledTasks.editor.title.new');
+  const description = t(mode === 'event' ? 'sessions.scheduledTasks.editor.descriptionEvent' : 'sessions.scheduledTasks.editor.description');
 
   const formBody = (
     <div className="flex flex-col gap-5">
@@ -621,12 +496,15 @@ export function ScheduledTaskEditorDialog(props: {
                       id="sched-name"
                       value={draft.name}
                       onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-                      placeholder={t('sessions.scheduledTasks.editor.taskName.placeholder')}
+                      placeholder={t(mode === 'event' ? 'sessions.scheduledTasks.editor.taskName.placeholderEvent' : 'sessions.scheduledTasks.editor.taskName.placeholder')}
                       maxLength={80}
                       className="w-full sm:max-w-[220px]"
                     />
                   </div>
 
+                  {mode === 'event' ? (
+                    <MqttTriggerFields draft={draft} setDraft={setDraft} t={t} />
+                  ) : (
                   <div className="flex flex-col gap-1">
                     <FieldLabel>{t('sessions.scheduledTasks.editor.scheduleType.label')}</FieldLabel>
                     <Select
@@ -663,10 +541,11 @@ export function ScheduledTaskEditorDialog(props: {
                       </SelectContent>
                     </Select>
                   </div>
+                  )}
 
                 </div>
 
-          {draft.schedule.kind === 'cron' ? (
+          {mode !== 'event' && (draft.schedule.kind === 'cron' ? (
             <CronScheduleSection draft={draft} setDraft={setDraft} locale={locale} t={t} />
           ) : draft.schedule.kind === 'once' ? (
             <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
@@ -804,7 +683,7 @@ export function ScheduledTaskEditorDialog(props: {
                 </Select>
               </div>
             </div>
-          )}
+           ))}
 
           {draft.sessionMode === 'new' && projectPath?.trim() ? (
             <div className="flex flex-col gap-1">

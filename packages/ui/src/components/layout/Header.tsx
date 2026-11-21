@@ -57,6 +57,7 @@ import { titlebarControlsWidthReaderRef } from './titlebarControlsWidth';
 import { useLayoutAnimationMs } from '@/hooks/useLayoutAnimationMs';
 import { LAYOUT_ANIMATION_EASING } from '@/lib/layoutAnimation';
 import { findWorktreeHoldingDirectory } from '@/lib/worktrees/worktreePaths';
+import { resolveHeaderSurfaceTitle } from './headerSurfaceTitle';
 
 const DESKTOP_HEADER_ICON_BUTTON_CLASS = 'app-region-no-drag inline-flex h-6 w-6 items-center justify-center gap-2 rounded-md typography-ui-label font-medium text-muted-foreground hover:text-foreground data-[popup-open]:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 transition-colors';
 
@@ -454,6 +455,7 @@ export const Header: React.FC = () => {
   const openGuestPageId = useUIStore((state) => state.openGuestPageId);
   const guestPage = useGuestsStore((state) => state.guests.find((guest) => guest.id === openGuestPageId));
   const isScheduledSurfaceOpen = useUIStore((state) => state.isScheduledTasksDialogOpen);
+  const isEventTasksSurfaceOpen = useUIStore((state) => state.isEventTasksDialogOpen);
   const isArchiveSurfaceOpen = useUIStore((state) => state.isArchivePageOpen);
   const isIntegrationsCatalogSurfaceOpen = useUIStore((state) => state.isIntegrationsCatalogOpen);
   const isUsageStatsSurfaceOpen = useUIStore((state) => state.isUsageStatsPageOpen);
@@ -469,40 +471,22 @@ export const Header: React.FC = () => {
     const project = state.projects.find((entry) => entry.id === surfaceProjectId);
     return project?.label?.trim() || project?.path?.split('/').pop() || null;
   });
-  const activeSurfaceHeader = React.useMemo<{ title: string; subtitle: string | null } | null>(() => {
-    if (guestPage) return { title: guestPage.pageTitle ?? guestPage.name, subtitle: null };
-    if (isScheduledSurfaceOpen) {
-      return { title: t('sessions.scheduledTasks.dialog.title'), subtitle: null };
-    }
-    if (isArchiveSurfaceOpen) {
-      return { title: t('sessions.archivePage.title'), subtitle: null };
-    }
-    if (isIntegrationsCatalogSurfaceOpen) {
-      return { title: t('integrationsCatalog.page.title'), subtitle: null };
-    }
-    if (isUsageStatsSurfaceOpen) {
-      return { title: t('usageStats.title'), subtitle: null };
-    }
-    if (isSourceBoardSurfaceOpen) {
-      return { title: t('sourceBoard.title'), subtitle: null };
-    }
-    if (isOverviewSurfaceOpen) {
-      return { title: t('overview.title'), subtitle: null };
-    }
-    if (worktreesSurfaceProjectId) {
-      return {
-        title: t('sessions.worktreesPage.title', { project: surfaceProjectLabel ?? '' }),
-        subtitle: null,
-      };
-    }
-    if (spacesSurfaceProjectId) {
-      return { title: t('spaces.page.title', { project: surfaceProjectLabel ?? '' }), subtitle: null };
-    }
-    if (runOverviewKey) {
-      return { title: overviewRunTitle ?? t('multirun.overview.headerTitle'), subtitle: t('multirun.overview.headerTitle') };
-    }
-    return null;
-  }, [guestPage, isArchiveSurfaceOpen, isIntegrationsCatalogSurfaceOpen, overviewRunTitle, runOverviewKey, isScheduledSurfaceOpen, isSourceBoardSurfaceOpen, isOverviewSurfaceOpen, isUsageStatsSurfaceOpen, spacesSurfaceProjectId, surfaceProjectLabel, t, worktreesSurfaceProjectId]);
+  const activeSurfaceHeader = React.useMemo(() => resolveHeaderSurfaceTitle({
+    guestPage,
+    isScheduledSurfaceOpen,
+    isEventTasksSurfaceOpen,
+    isArchiveSurfaceOpen,
+    isIntegrationsCatalogSurfaceOpen,
+    isUsageStatsSurfaceOpen,
+    isSourceBoardSurfaceOpen,
+    isOverviewSurfaceOpen,
+    worktreesSurfaceProjectId,
+    spacesSurfaceProjectId,
+    surfaceProjectLabel,
+    runOverviewKey,
+    overviewRunTitle,
+    t,
+  }), [guestPage, isArchiveSurfaceOpen, isEventTasksSurfaceOpen, isIntegrationsCatalogSurfaceOpen, overviewRunTitle, runOverviewKey, isScheduledSurfaceOpen, isSourceBoardSurfaceOpen, isOverviewSurfaceOpen, isUsageStatsSurfaceOpen, spacesSurfaceProjectId, surfaceProjectLabel, t, worktreesSurfaceProjectId]);
 
 
   const handleOpenDraftMiniChat = React.useCallback(() => {

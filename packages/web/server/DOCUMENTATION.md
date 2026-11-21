@@ -19,7 +19,8 @@ it imports.
   entry fields.
 
 - Package-owned paths come from `lib/web-package-paths.js`, which locates the
-  ancestor manifest named `@openchamber/web` and caches the resolved paths.
+  ancestor manifest named `@openchamber/web` or the published fork package
+  `@ngargaud/openchamber-web` and caches the resolved paths.
   Server and CLI entries follow that manifest; UI assets remain in package-root
   `dist`, with `OPENCHAMBER_DIST_DIR` taking precedence. Importer-relative sibling
   assets and the built-in extensions override retain their own contracts.

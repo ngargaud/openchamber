@@ -87,6 +87,19 @@ export const knowledgeSavedSchema = z.object({
   warning: text,
 }).refine((saved) => Boolean(saved.todo?.text || saved.note?.body || saved.plan?.path), 'nothing to show');
 
+const mqttTaskSchema = z.object({
+  topic: z.string(),
+  qos: z.number().optional().catch(undefined),
+  broker: text,
+  username: text,
+  password: text,
+  payloadTemplate: text,
+  topicTemplate: text,
+  handleRetained: z.boolean().optional().catch(undefined),
+  minIntervalMs: z.number().optional().catch(undefined),
+  dedup: z.boolean().optional().catch(undefined),
+}).optional().catch(undefined);
+
 const scheduledTaskSchema = z.object({
   name: text,
   enabled: z.boolean().optional().catch(undefined),
@@ -98,7 +111,8 @@ const scheduledTaskSchema = z.object({
     weekdays: z.array(z.number()).optional().catch(undefined),
     cron: text,
     timezone: text,
-  }),
+  }).optional().catch(undefined),
+  mqtt: mqttTaskSchema,
 });
 
 export const scheduledSchema = z.object({ task: scheduledTaskSchema });
