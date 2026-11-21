@@ -134,6 +134,10 @@
 - Widgets consume display-only snapshots; network reads remain in the connected app and Android sync runs only with placed widgets. Unloaded stores and failed builders preserve native snapshots. Quota timestamps reflect provider answers, and failed refreshes cannot rewrite old data as fresh. Queued native refresh taps are acknowledged after fetching, including taps arriving during a fetch; bridge failure leaves them queued.
 - Widget session ordering, unread state and project ownership match the shared lifecycle and sidebar, including worktrees and isolated spaces. The iOS bridge returns a JSON primitive or null so failed construction cannot overwrite a good App Group snapshot. Widget quotas use the Usage page's selected providers, models, formatting and theme colors without copying credentials.
 
+- Mobile has a separate event-tasks surface. It uses the same task view as the
+  desktop event dialog in `mode="event"` and shares the scheduled surface's
+  leave behavior.
+
 ## Decisions
 
 ### Why mobile push registers with every saved instance and not only the connected one

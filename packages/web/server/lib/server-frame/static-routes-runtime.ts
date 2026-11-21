@@ -63,8 +63,15 @@ export const createStaticRoutesRuntime = (dependencies: StaticRoutesDependencies
         isRequestAuthorized,
       });
 
-      app.get(/^(?!\/api|\/linear|.*\.(js|css|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot|map)).*$/, (_req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+      app.get(/^(?!\/api|\/linear|.*\.(js|css|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot|map)).*$/, (req, res) => {
+        res.sendFile('index.html', { root: distPath }, (error) => {
+          if (error) {
+            if (!res.headersSent) {
+              res.status(404).end();
+            }
+            console.debug('[static-routes] Failed to send index.html for', req.path, ':', error?.message || error);
+          }
+        });
       });
       return;
     }

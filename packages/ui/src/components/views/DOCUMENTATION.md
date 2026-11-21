@@ -152,6 +152,9 @@ stores own durable state and shared caches.
   so a half-written file stays out of the editor. A failed read leaves the change
   pending for retry; metadata comparison tolerates sub-millisecond mtime jitter.
 
+- Settings includes the `mqtt` page. It renders the broker editor between MCP
+  and Plugins and follows the same page availability rules as other pages.
+
 ## Decisions
 
 ### Why archive rows mount in batches and not a virtual list

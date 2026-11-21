@@ -24,26 +24,21 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { getRuntimeKey } from '@/lib/runtime-switch';
 import { SettingsSplitStage } from '@/components/views/SettingsSplitStage';
-import { AgentsSidebar } from '@/components/sections/agents/AgentsSidebar';
+import { SettingsPageSidebar } from './SettingsPageSidebar';
 import { AgentsPage } from '@/components/sections/agents/AgentsPage';
 import { BehaviorPage } from '@/components/sections/behavior/BehaviorPage';
 import { WebSearchPage } from '@/components/sections/websearch/WebSearchPage';
-import { CommandsSidebar } from '@/components/sections/commands/CommandsSidebar';
 import { CommandsPage } from '@/components/sections/commands/CommandsPage';
 import { McpPage } from '@/components/sections/mcp/McpPage';
+import { MqttBrokersPage } from '@/components/sections/mqtt/MqttBrokersPage';
 import { PluginsPage } from '@/components/sections/plugins';
 import { usePluginsStore } from '@/stores/usePluginsStore';
-import { SkillsSidebar } from '@/components/sections/skills/SkillsSidebar';
 import { SkillsPage } from '@/components/sections/skills/SkillsPage';
-import { ProjectsSidebar } from '@/components/sections/projects/ProjectsSidebar';
 import { ProjectsPage } from '@/components/sections/projects/ProjectsPage';
 import { RemoteInstancesPage } from '@/components/sections/remote-instances/RemoteInstancesPage';
 import { ProvidersPage } from '@/components/sections/providers/ProvidersPage';
-import { UsageSidebar } from '@/components/sections/usage/UsageSidebar';
 import { UsagePage } from '@/components/sections/usage/UsagePage';
-import { MagicPromptsSidebar } from '@/components/sections/magic-prompts/MagicPromptsSidebar';
 import { MagicPromptsPage } from '@/components/sections/magic-prompts/MagicPromptsPage';
-import { SnippetsSidebar } from '@/components/sections/snippets/SnippetsSidebar';
 import { SnippetsPage } from '@/components/sections/snippets/SnippetsPage';
 import { GitPage } from '@/components/sections/git-identities/GitPage';
 import { IntegrationsPage } from '@/components/sections/integrations/IntegrationsPage';
@@ -140,6 +135,7 @@ const pageOrder: SettingsPageSlug[] = [
   'behavior',
   'commands',
   'mcp',
+  'mqtt',
   'plugins',
   'magic-prompts',
   'snippets',
@@ -606,27 +602,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
     );
   }, [t]);
 
-  const renderPageSidebar = React.useCallback((slug: SettingsPageSlug, opts: { onItemSelect?: () => void }) => {
-    switch (slug) {
-      case 'projects':
-        return <ProjectsSidebar onItemSelect={opts.onItemSelect} />;
-      case 'agents':
-        return <AgentsSidebar onItemSelect={opts.onItemSelect} />;
-      case 'commands':
-        return <CommandsSidebar onItemSelect={opts.onItemSelect} />;
-      case 'skills.installed':
-        return <SkillsSidebar onItemSelect={opts.onItemSelect} />;
-      case 'usage':
-        return <UsageSidebar onItemSelect={opts.onItemSelect} />;
-      case 'magic-prompts':
-        return <MagicPromptsSidebar onItemSelect={opts.onItemSelect} />;
-      case 'snippets':
-        return <SnippetsSidebar onItemSelect={opts.onItemSelect} />;
-      default:
-        return null;
-    }
-  }, []);
-
   const renderPageContent = React.useCallback((slug: SettingsPageSlug) => {
     const meta = getSettingsPageMeta(slug);
     if (meta && !isPageAvailable(meta, runtimeCtx)) {
@@ -646,6 +621,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
         return <CommandsPage />;
       case 'mcp':
         return <McpPage />;
+      case 'mqtt':
+        return <MqttBrokersPage />;
       case 'plugins':
         return <PluginsPage />;
       case 'skills.installed':
@@ -1002,7 +979,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
       return (
         <SettingsSplitStage
           showSidebar={!showsContent}
-          sidebar={renderPageSidebar(settingsSlug, { onItemSelect: handleMobilePageSidebarItemSelect })}
+          sidebar={<SettingsPageSidebar slug={settingsSlug} onItemSelect={handleMobilePageSidebarItemSelect} />}
           content={showsContent ? renderPageContent(settingsSlug) : null}
         />
       );
@@ -1033,7 +1010,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
       return (
         <div className="flex h-full min-h-0 overflow-hidden">
           <div className={cn('border-e', runtimeCtx.isVSCode ? 'bg-background' : 'bg-sidebar')} style={{ width: SETTINGS_SPLIT_SIDEBAR_WIDTH, minWidth: SETTINGS_SPLIT_SIDEBAR_WIDTH, borderColor: 'var(--interactive-border)' }}>
-            <ErrorBoundary>{renderPageSidebar(settingsSlug, {})}</ErrorBoundary>
+            <ErrorBoundary><SettingsPageSidebar slug={settingsSlug} /></ErrorBoundary>
           </div>
           <ScrollableOverlay outerClassName="flex-1 min-h-0" className="bg-background" disableHorizontal verticalTrackStart={scrollbarTopClearance}>
             {content}

@@ -255,6 +255,9 @@ so it survives the sidebar closing and reopening. A folder change remounts the t
   and completes only after live provider and agent loads; persisted catalogs
   cannot mark a cold start complete.
 
+- The header shows the event-tasks title while its page is open, after the
+  scheduled-tasks title and before archive.
+
 ## Decisions
 
 ### Why lazy surfaces and not eager imports

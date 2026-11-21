@@ -14,6 +14,7 @@ export type SettingsPageSlug =
   | 'behavior'
   | 'commands'
   | 'mcp'
+  | 'mqtt'
   | 'plugins'
   | 'skills.installed'
   | 'skills.catalog'
@@ -138,6 +139,13 @@ export const SETTINGS_PAGE_METADATA: readonly SettingsPageMeta[] = [
     group: 'opencode',
     kind: 'single',
     keywords: ['mcp', 'model context protocol', 'servers', 'tools', 'remote', 'stdio'],
+  },
+  {
+    slug: 'mqtt',
+    title: 'MQTT',
+    group: 'opencode',
+    kind: 'single',
+    keywords: ['mqtt', 'broker', 'topic', 'trigger', 'iot'],
   },
   {
     slug: 'plugins',
@@ -318,6 +326,8 @@ export function getSettingsNavIcon(slug: SettingsPageSlug): IconName | null {
       return 'slash-commands-2';
     case 'mcp':
       return null;
+    case 'mqtt':
+      return 'plug';
     case 'plugins':
       return 'plug-2';
 

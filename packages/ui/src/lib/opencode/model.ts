@@ -57,7 +57,7 @@ export type Project = {
   sandboxes: string[]
 }
 export type ConfigDocument = Extract<ConfigEntry, { type: "document" }>
-export type Config = ConfigDocument["info"]
+export type Config = ConfigDocument["info"] & { compaction?: { background?: boolean } }
 export type { JsonValue, ModelRef, PermissionRuleset, TokenUsageInfo }
 
 export type ModelSelection = Omit<ModelRef, "variant"> & { variant?: string | null }

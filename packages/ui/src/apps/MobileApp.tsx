@@ -84,7 +84,8 @@ import { UsageStatsView } from '@/components/views/usage/UsageStatsView';
 import { ArchiveSessionsView } from '@/components/views/ArchiveView';
 import { MobileSourceBoard } from '@/components/sourceBoard/SourceBoardView';
 import { OverviewPage } from '@/components/overview/OverviewView';
-import { ScheduledTasksView, type ScheduledTasksLeaveReason } from '@/components/session/ScheduledTasksDialog';
+import type { ScheduledTasksLeaveReason } from '@/components/session/ScheduledTasksDialog';
+import { MobileTasksSurface } from './MobileTasksSurface';
 import { MobileWorkspaceDrawer } from './MobileWorkspaceDrawer';
 import type { MobileChangesCommitRequest } from './mobileChangesCommitRequest';
 import type { MobileChangesInitialDiff } from '@/hooks/useMobileChangesNavigation';
@@ -154,7 +155,7 @@ const NATIVE_RESUME_SYNC_EVENT_THROTTLE_MS = 1_000;
 
 const PluginPane = React.lazy(() => import('@/components/layout/PluginPane').then((module) => ({ default: module.PluginPane })));
 
-type MobileSurface = 'archive' | 'board' | 'overview' | 'instances' | 'scheduled' | 'settings' | 'update' | 'usage';
+type MobileSurface = 'archive' | 'board' | 'overview' | 'instances' | 'scheduled' | 'event-tasks' | 'settings' | 'update' | 'usage';
 
 const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onActiveConnectionDeleted }) => {
   const { t, direction } = useI18n();
@@ -497,6 +498,7 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
       onOpenSettings: () => openSettingsSurface('nav'),
       onOpenUsage: () => openSurface('usage'),
       onOpenScheduled: () => openSurface('scheduled'),
+      onOpenEventTasks: () => openSurface('event-tasks'),
       onOpenArchive: () => openSurface('archive'),
       onOpenOverview: overviewAvailable ? () => openSurface('overview') : undefined,
       onOpenSourceBoard: () => openSurface('board'),
@@ -774,18 +776,11 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
         ) : null}
 
         {activeSurface === 'scheduled' ? (
-          <MobileFullscreenSurface
-            open
-            variant={surfaceVariant}
-            dialogAlign="app"
-            onClose={closeSurface}
-            ariaLabel={t('sessions.scheduledTasks.dialog.title')}
-            title={t('sessions.scheduledTasks.dialog.title')}
-          >
-            <ErrorBoundary>
-              <ScheduledTasksView layout="mobile" onLeave={leaveScheduledTasks} />
-            </ErrorBoundary>
-          </MobileFullscreenSurface>
+          <MobileTasksSurface mode="scheduled" variant={surfaceVariant} onClose={closeSurface} onLeave={leaveScheduledTasks} />
+        ) : null}
+
+        {activeSurface === 'event-tasks' ? (
+          <MobileTasksSurface mode="event" variant={surfaceVariant} onClose={closeSurface} onLeave={leaveScheduledTasks} />
         ) : null}
 
         {activeSurface === 'board' ? (

@@ -52,12 +52,16 @@ test('the pages come in their order, each row opens its page and closes it on th
   const { useUIStore } = await import('@/stores/useUIStore');
   const initial = useUIStore.getState();
   useUIStore.getState().setOverviewFeatureAvailable(true);
+  window.localStorage.setItem('openchamber.mqtt.brokers', JSON.stringify([
+    { id: 'broker-1', name: 'Local broker', url: 'ws://mqtt:1883', username: '', password: '' },
+  ]));
   const { root, labels, row } = await renderPages();
   try {
-    expect(labels()).toEqual(['Overview', 'Issues and PRs', 'Scheduled tasks', 'Archive', 'Stats', 'Integrations catalog']);
+    expect(labels()).toEqual(['Overview', 'Issues and PRs', 'Scheduled tasks', 'Event tasks', 'Archive', 'Stats', 'Integrations catalog']);
     for (const [label, isOpen] of [
       ['Archive', () => useUIStore.getState().isArchivePageOpen],
       ['Scheduled tasks', () => useUIStore.getState().isScheduledTasksDialogOpen],
+      ['Event tasks', () => useUIStore.getState().isEventTasksDialogOpen],
       ['Issues and PRs', () => useUIStore.getState().isSourceBoardOpen],
       ['Overview', () => useUIStore.getState().isOverviewOpen],
     ] as const) {
@@ -84,6 +88,7 @@ test('without the overview feature there is no Overview row', async () => {
   const { root, labels } = await renderPages();
   try {
     expect(labels()).not.toContain('Overview');
+    expect(labels()).not.toContain('Event tasks');
     expect(labels()[0]).toBe('Issues and PRs');
   } finally {
     useUIStore.setState(initial);

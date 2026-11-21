@@ -48,6 +48,7 @@ import { registerSettingsUtilityRoutes } from './core-routes.js';
 import { registerProjectIconRoutes } from '../appearance/project-icon-routes.js';
 import { registerProviderLogoRoutes } from '../appearance/provider-logo-routes.js';
 import { registerScheduledTaskRoutes } from '../scheduled-tasks/routes.js';
+import { registerMqttRoutes } from '../mqtt/routes.js';
 import { fillScheduledWorktreeBridge } from '../scheduled-tasks/worktree-bridge.js';
 import { createTrackedItemsService } from '../tracked-items/service.js';
 import { createProviderReadCache } from '../provider-read-cache/index.js';
@@ -189,6 +190,7 @@ type RouteDependencies =
     sessionKnowledgeRuntime: Parameters<typeof registerSessionKnowledgeRoutes>[1]['sessionKnowledgeRuntime'];
     openChamberSessionService: NonNullable<SessionOptions['sessionService']>;
     openChamberControlService: Parameters<typeof registerOpenChamberControlRoutes>[1]['controlService'];
+    mqttClient?: Parameters<typeof registerMqttRoutes>[1]['mqttClient'];
     getOpenChamberEventClients: () => Set<EventClient>;
     writeSseEvent: ReturnType<typeof createNotificationEmitterRuntime>['writeSseEvent'];
     permissionAutoAcceptRuntime: Parameters<typeof registerPermissionAutoAcceptRoutes>[1];
@@ -459,6 +461,7 @@ export const createFeatureRoutesRuntime = (dependencies: FeatureRuntimeDependenc
       writeSseEvent,
     });
 
+    registerMqttRoutes(app, { mqttClient: routeDependencies.mqttClient ?? null });
     registerOpenChamberSessionRoutes(app, {
       readSettingsFromDiskMigrated,
       sanitizeProjects,
@@ -584,14 +587,8 @@ export const createFeatureRoutesRuntime = (dependencies: FeatureRuntimeDependenc
       resolveGitPaths: resolveRepositoryGitPaths,
       fsImpl: fsPromises,
     });
-    const sourceControlAuditStore = createSourceControlAuditStore({
-      filePath: path.join(openchamberDataDir, 'source-control-audit.json'),
-      fsImpl: fsPromises,
-    });
-    const sshCredentialStore = createManagedSshCredentialStore({
-      filePath: path.join(openchamberDataDir, 'git-ssh-credentials.json'),
-      fsImpl: fsPromises,
-    });
+    const sourceControlAuditStore = createSourceControlAuditStore({ filePath: path.join(openchamberDataDir, 'source-control-audit.json'), fsImpl: fsPromises });
+    const sshCredentialStore = createManagedSshCredentialStore({ filePath: path.join(openchamberDataDir, 'git-ssh-credentials.json'), fsImpl: fsPromises });
     const sshPassphrases = createSshPassphraseStore(openCodeCredentialSource({ buildOpenCodeUrl, getOpenCodeAuthHeaders }));
     const managedSshInventory = createManagedSshInventory({
       passphrases: sshPassphrases,

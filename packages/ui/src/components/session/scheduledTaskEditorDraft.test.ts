@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildScheduledTaskPayload, toDraft, type ScheduledTaskDraft } from './scheduledTaskEditorDraft';
+import { buildScheduledTaskPayload, toDraft, validateDraft, type ScheduledTaskDraft } from './scheduledTaskEditorDraft';
 import type { ScheduledTask } from '@/lib/scheduledTasksApi';
+import type { I18nKey } from '@/lib/i18n';
 
 const defaults = { providerID: 'provider-x', modelID: 'model-x', variant: '', agent: '' };
 
@@ -117,5 +118,42 @@ describe('scheduledTaskEditorDraft.buildScheduledTaskPayload', () => {
     };
     const payload = buildScheduledTaskPayload(draft);
     expect('cleanupWorktree' in payload).toBe(false);
+  });
+});
+
+
+describe('scheduledTaskEditorDraft mqtt', () => {
+  test('builds an mqtt payload without schedule', () => {
+    const draft = toDraft(null, defaults);
+    draft.triggerType = 'mqtt';
+    draft.name = 'mqtt task';
+    draft.execution.prompt = 'handle {{payload}}';
+    draft.mqtt.topic = 'sensors/+/temp';
+    draft.mqtt.payloadTemplate = '{{payload}}';
+    const payload = buildScheduledTaskPayload(draft);
+    expect(payload.mqtt?.topic).toBe('sensors/+/temp');
+    expect(payload.schedule).toBeUndefined();
+  });
+
+  test('validates topic required', () => {
+    const draft = toDraft(null, defaults);
+    draft.triggerType = 'mqtt';
+    draft.name = 't';
+    draft.execution.prompt = 'p';
+    const t = (key: I18nKey) => key;
+    expect(validateDraft(draft, t)).toBeTruthy();
+  });
+
+  test('validates the selected model before its trigger', () => {
+    const draft = toDraft(null, defaults);
+    draft.triggerType = 'mqtt';
+    draft.name = 't';
+    draft.execution.prompt = 'p';
+    draft.execution.useDefaults = false;
+    draft.execution.providerID = '';
+    draft.execution.modelID = '';
+    draft.mqtt.topic = 'events/#';
+    const t = (key: I18nKey) => key;
+    expect(validateDraft(draft, t)).toBe('sessions.scheduledTasks.editor.validation.modelRequired');
   });
 });

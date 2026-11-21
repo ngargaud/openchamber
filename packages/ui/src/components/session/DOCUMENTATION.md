@@ -118,8 +118,33 @@ own their contracts in `project-context/DOCUMENTATION.md` and
   drop seconds after an hour to fit row metadata and localize complete unit text.
 - AI rename checks eligibility only while its controls are open and requires the
   small model; unavailable configuration disables it with an explanation.
+- Event tasks live in a separate dialog, sidebar page, mobile surface, and editor
+  mode. The list filters event tasks by the stored `mqtt` field, and the editor
+  writes `mqtt` instead of a schedule.
+- The event broker picker lists only saved brokers and shows their names. The
+  saved broker URL, username, and password are copied into the task so a later
+  broker edit or removal does not change an existing task.
+- Event prompt and topic templates accept `{{payload}}`, `{{topic}}`,
+  `{{payload.key}}`, and nested paths. Event editor copy uses event-specific
+  title, description, and task-name placeholder.
+- "Run now" is unavailable for event tasks because an event run needs the
+  message that triggers it.
 
 ## Decisions
+
+### Why event tasks use the scheduled editor in a separate mode
+
+Event tasks share the execution fields, targeting, and save path with scheduled
+tasks. A `mode` prop changes the trigger fields and editor copy, so the two task
+kinds stay separate in the UI without a second editor to keep in step.
+
+### Why tasks copy broker credentials
+
+Brokers live in browser localStorage and can be edited or removed later. A task
+stores the URL and credentials it was saved with, so changing the broker list
+does not silently change where an existing task connects or which identity it
+uses.
+
 
 ### Why the branch picker explicitly focuses its input
 

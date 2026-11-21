@@ -117,11 +117,24 @@ export type ScheduledTaskState = {
   lastRunBranch?: string | undefined;
 };
 
+export type ScheduledTaskMqttTrigger = {
+  topic: string;
+  qos: 0 | 1 | 2;
+  broker?: string;
+  username?: string;
+  password?: string;
+  payloadTemplate?: string;
+  topicTemplate?: string;
+  handleRetained: boolean;
+  minIntervalMs?: number;
+  dedup: boolean;
+};
+
 export type ScheduledTask = {
   id: string;
   name: string;
   enabled: boolean;
-  schedule: ScheduledTaskSchedule;
+  schedule?: ScheduledTaskSchedule;
   execution: ScheduledTaskExecution;
   state: ScheduledTaskState;
   loopFile?: string;
@@ -130,6 +143,7 @@ export type ScheduledTask = {
   baseBranch?: string;
   cleanupWorktree?: boolean;
   targetSessionId?: string;
+  mqtt?: ScheduledTaskMqttTrigger;
 };
 
 export interface ScheduledTaskStateResult {
@@ -169,6 +183,7 @@ export interface ScheduledTaskInput {
   baseBranch?: unknown;
   cleanupWorktree?: unknown;
   loopFile?: unknown;
+  mqtt?: unknown;
 }
 
 export interface ScheduledTaskStore extends ScheduledTaskConfig {

@@ -21,7 +21,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { DirectoryExplorerDialog } from '@/components/session/DirectoryExplorerDialog';
 import { Icon } from '@/components/icon/Icon';
-import type { IconName } from '@/components/icon/icons';
+import { MobileSessionsPageItem } from './MobileSessionsPageItem';
 import { NewWorktreeDialog } from '@/components/session/NewWorktreeDialog';
 import { SessionSidebar } from '@/components/session/SessionSidebar';
 import { SessionSearchInput } from '@/components/session/SessionSearchInput';
@@ -85,6 +85,7 @@ type MobileSessionsSheetProps = {
     onOpenInstances?: () => void;
     onOpenSettings: () => void;
     onOpenScheduled: () => void;
+    onOpenEventTasks?: () => void;
     onOpenArchive: () => void;
     onOpenUsage: () => void;
     onOpenOverview?: () => void;
@@ -416,14 +417,6 @@ export const MobileSessionsSheet: React.FC<MobileSessionsSheetProps> = ({ open, 
     </Button>
   ) : null;
 
-  const pageItem = (icon: IconName, label: string, onClick: () => void) => (
-    <DropdownMenuItem onClick={onClick} className={MOBILE_MENU_ITEM_CLASS}>
-      <span className="flex items-center gap-2">
-        <Icon name={icon} className="size-4" />
-        {label}
-      </span>
-    </DropdownMenuItem>
-  );
   const guestPages = useGuestPages();
   const moreMenu = footer && !editingOrder ? (
     <DropdownMenu>
@@ -440,11 +433,12 @@ export const MobileSessionsSheet: React.FC<MobileSessionsSheetProps> = ({ open, 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        {footer.onOpenOverview ? pageItem('compass-3', t('overview.title'), footer.onOpenOverview) : null}
-        {pageItem('git-pull-request', t('sourceBoard.title'), footer.onOpenSourceBoard)}
-        {pageItem('calendar-schedule', t('sessions.sidebar.header.actions.scheduledTasks'), footer.onOpenScheduled)}
-        {pageItem('archive', t('sessions.sidebar.nav.archive'), footer.onOpenArchive)}
-        {pageItem('bar-chart', t('usageStats.openAction'), footer.onOpenUsage)}
+        {footer.onOpenOverview ? <MobileSessionsPageItem icon="compass-3" label={t('overview.title')} onClick={footer.onOpenOverview} /> : null}
+        <MobileSessionsPageItem icon="git-pull-request" label={t('sourceBoard.title')} onClick={footer.onOpenSourceBoard} />
+        <MobileSessionsPageItem icon="calendar-schedule" label={t('sessions.sidebar.header.actions.scheduledTasks')} onClick={footer.onOpenScheduled} />
+        {footer.onOpenEventTasks ? <MobileSessionsPageItem icon="plug" label={t('sessions.sidebar.header.actions.eventTasks')} onClick={footer.onOpenEventTasks} /> : null}
+        <MobileSessionsPageItem icon="archive" label={t('sessions.sidebar.nav.archive')} onClick={footer.onOpenArchive} />
+        <MobileSessionsPageItem icon="bar-chart" label={t('usageStats.openAction')} onClick={footer.onOpenUsage} />
         {guestPages.map((guest) => (
           <DropdownMenuItem key={guest.id} onClick={() => useUIStore.getState().setOpenGuestPage(guest.id)} className={MOBILE_MENU_ITEM_CLASS}>
             <span className="flex min-w-0 items-center gap-2">

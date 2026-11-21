@@ -1,5 +1,7 @@
 import { asNonEmptyString, isBoolean, isRecord } from '../shared/guards.js';
 import { extractTextMessages, type MessageRecord, type TextMessage } from './session-text-messages.js';
+import type { ControlMqttTask } from '../mqtt/control-task-fields.js';
+import { buildTaskTrigger, patchTaskTrigger, type TaskSchedule } from './task-trigger.js';
 import path from 'node:path';
 import nodeFsPromises from 'node:fs/promises';
 import { OpenCode } from '@opencode/client';
@@ -133,22 +135,18 @@ interface TaskExecution {
   goalEnabled?: boolean;
   goalTokenBudget?: number;
 }
-type TaskSchedule =
-  | { kind: 'daily'; times: string[]; timezone?: string }
-  | { kind: 'weekly'; times: string[]; weekdays: number[]; timezone?: string }
-  | { kind: 'once'; date: string; time: string; timezone?: string }
-  | { kind: 'cron'; cron: string | null; timezone?: string };
 interface ControlTask {
   id?: string;
   loopFile?: string;
   name: string;
   enabled: boolean;
-  schedule: TaskSchedule;
+  schedule?: TaskSchedule;
   execution: TaskExecution;
   targetSessionId?: unknown;
   runInWorktree?: unknown;
   cleanupWorktree?: unknown;
   baseBranch?: string | null;
+  mqtt?: ControlMqttTask;
 }
 interface SessionPayload {
   directory?: string;
@@ -296,12 +294,12 @@ const buildScheduledTask = (input: ControlInput) => {
   const task: ControlTask = {
     name,
     enabled: input.disabled !== true,
-    schedule: buildSchedule(input),
     execution: {
       prompt,
       ...model,
     },
   };
+  Object.assign(task, buildTaskTrigger(input, buildSchedule));
   if (hasText(input.agent)) task.execution.agent = input.agent.trim();
   if (hasText(input.variant)) task.execution.variant = input.variant.trim();
   if (input.goal === true) task.execution.goalEnabled = true;
@@ -354,27 +352,7 @@ const patchScheduledTask = (existing: ControlTask & { id: string }, input: Contr
     name = asNonEmptyString(input.name);
     if (!name) throw new OpenChamberControlError('name cannot be empty', 400);
   }
-  const selectors = (['daily', 'weekly', 'once', 'cron'] as const).filter((key) => input[key] !== undefined);
-  if (selectors.length > 1 || (selectors.length === 1 && !asNonEmptyString(input[selectors[0] ?? 'daily']))) {
-    throw new OpenChamberControlError('Provide exactly one nonempty daily, weekly, once, or cron selector', 400);
-  }
-  const timezone = asNonEmptyString(input.timezone);
-  let schedule = selectors.length === 1
-    ? buildSchedule(input)
-    : (timezone ? { ...existing.schedule, timezone } : existing.schedule);
-  if (input.time !== undefined) {
-    const time = asNonEmptyString(input.time);
-    if (!time || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-      throw new OpenChamberControlError('time must be HH:mm', 400);
-    }
-    if (schedule.kind === 'once') {
-      schedule = { ...schedule, time };
-    } else if (schedule.kind === 'weekly' && schedule.times.length === 1) {
-      schedule = { ...schedule, times: [time] };
-    } else {
-      throw new OpenChamberControlError('time requires a once or single-time weekly schedule; provide an explicit schedule to replace other schedules', 400);
-    }
-  }
+  const { schedule, mqtt } = patchTaskTrigger(input, existing, buildSchedule);
 
   assertWorktreeIsolation(
     input,
@@ -385,9 +363,10 @@ const patchScheduledTask = (existing: ControlTask & { id: string }, input: Contr
     targetSessionId: input.targetSessionId === undefined ? existing.targetSessionId : input.targetSessionId,
     name,
     enabled: isBoolean(input.disabled) ? !input.disabled : existing.enabled,
-    schedule,
     execution,
   };
+  if (schedule) patch.schedule = schedule;
+  if (mqtt) patch.mqtt = mqtt;
   if (input.runInWorktree !== undefined) patch.runInWorktree = input.runInWorktree;
   if (input.cleanupWorktree !== undefined) patch.cleanupWorktree = input.cleanupWorktree;
   if (input.baseBranch !== undefined) patch.baseBranch = asNonEmptyString(input.baseBranch);

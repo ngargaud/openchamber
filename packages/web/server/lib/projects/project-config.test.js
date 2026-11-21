@@ -1202,6 +1202,48 @@ describe('project-config loop reconciliation', () => {
     }
   }, 20_000);
 
+  it('replaces the opposite trigger when a task changes kind and preserves MQTT password whitespace', async () => {
+    const { runtime, cleanup } = await createRuntime();
+    const projectID = 'task-trigger-kind';
+    const execution = { prompt: 'Run', providerID: 'openai', modelID: 'gpt-4.1' };
+    try {
+      const scheduled = await runtime.upsertScheduledTask(projectID, {
+        id: 'task-one',
+        name: 'Scheduled',
+        enabled: true,
+        schedule: { kind: 'daily', time: '09:00', timezone: 'UTC' },
+        execution,
+      });
+      expect(scheduled.task.schedule).toBeDefined();
+
+      const event = await runtime.upsertScheduledTask(projectID, {
+        id: scheduled.task.id,
+        name: 'Event',
+        mqtt: {
+          topic: 'incoming/+',
+          broker: 'ws://mqtt:1883',
+          username: 'reader',
+          password: '  secret  ',
+          qos: 2,
+        },
+        execution,
+      });
+      expect(event.task.schedule).toBeUndefined();
+      expect(event.task.mqtt).toMatchObject({ topic: 'incoming/+', broker: 'ws://mqtt:1883', username: 'reader', password: '  secret  ', qos: 2 });
+
+      const backToScheduled = await runtime.upsertScheduledTask(projectID, {
+        id: event.task.id,
+        name: 'Scheduled again',
+        schedule: { kind: 'daily', time: '10:00', timezone: 'UTC' },
+        execution,
+      });
+      expect(backToScheduled.task.mqtt).toBeUndefined();
+      expect(backToScheduled.task.schedule).toMatchObject({ kind: 'daily', times: ['10:00'] });
+    } finally {
+      await cleanup();
+    }
+  });
+
   it('recovers from an unparseable lock using mtime age', async () => {
     const { runtime, cleanup } = await createRuntime();
     const fsPromises = await import('fs/promises');

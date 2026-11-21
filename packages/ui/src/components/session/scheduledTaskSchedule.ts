@@ -2,7 +2,8 @@ import type { useI18n } from '@/lib/i18n';
 import type { ScheduledTask } from '@/lib/scheduledTasksApi';
 import { canonicalizeTimezone } from '@/lib/timezones';
 
-const scheduleTimes = (schedule: ScheduledTask['schedule']): string[] => {
+const scheduleTimes = (schedule: ScheduledTask['schedule'] | undefined): string[] => {
+  if (!schedule) return [];
   const raw = Array.isArray(schedule.times)
     ? schedule.times
     : (schedule.time ? [schedule.time] : []);
@@ -10,7 +11,8 @@ const scheduleTimes = (schedule: ScheduledTask['schedule']): string[] => {
   return Array.from(new Set(valid)).sort((a, b) => a.localeCompare(b));
 };
 
-export const formatSchedule = (schedule: ScheduledTask['schedule'], t: ReturnType<typeof useI18n>['t']): string => {
+export const formatSchedule = (schedule: ScheduledTask['schedule'] | undefined, t: ReturnType<typeof useI18n>['t']): string => {
+  if (!schedule) return '';
   const timesLabel = scheduleTimes(schedule).join(', ') || '--:--';
   const formatWeekday = (value: number) => {
     if (value === 0) return t('sessions.scheduledTasks.dialog.schedule.weekdayShort.sun');

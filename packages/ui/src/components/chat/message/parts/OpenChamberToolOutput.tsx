@@ -204,7 +204,7 @@ const ScheduledBody: React.FC<{ data: unknown; call: OpenChamberCallInput; direc
     const { task } = parsed.data;
     return (
         <>
-            <Field label={t('chat.toolPart.openchamber.field.when')}>{formatSchedule(task.schedule, t)}</Field>
+            <Field label={t('chat.toolPart.openchamber.field.when')}>{task.mqtt ? `MQTT: ${task.mqtt.topic}` : (task.schedule ? formatSchedule(task.schedule, t) : '')}</Field>
             {task.enabled === false ? <Field label={t('chat.toolPart.openchamber.field.state')}>{t('chat.toolPart.openchamber.schedule.paused')}</Field> : null}
             <Actions open={panels ? { label: t('chat.toolPart.openchamber.open.scheduled'), icon: 'calendar-schedule', onOpen: () => useUIStore.getState().setScheduledTasksDialogOpen(true) } : null} />
         </>
@@ -454,7 +454,7 @@ const ScheduleListedBody: React.FC<{ data: unknown; call: OpenChamberCallInput; 
                     <ListRow
                         key={task.id}
                         primary={task.name ?? task.id}
-                        secondary={[formatSchedule(task.schedule, t), task.enabled === false ? t('chat.toolPart.openchamber.schedule.paused') : undefined].filter(Boolean).join(' · ')}
+                        secondary={[task.mqtt ? `MQTT: ${task.mqtt.topic}` : (task.schedule ? formatSchedule(task.schedule, t) : undefined), task.enabled === false ? t('chat.toolPart.openchamber.schedule.paused') : undefined].filter(Boolean).join(' · ')}
                     />
                 ))}
             </List>

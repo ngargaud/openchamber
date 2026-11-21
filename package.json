@@ -211,5 +211,16 @@
     "happy-dom@21.0.4": "bun-patches/happy-dom@21.0.4.patch",
     "@legendapp/list@3.7.2": "bun-patches/@legendapp%2Flist@3.7.2.patch",
     "zod@4.6.7": "bun-patches/zod@4.6.7.patch"
-  }
+  },
+  "trustedDependencies": [
+    "@heroui/shared-utils",
+    "@openuidev/lang-core",
+    "@parcel/watcher",
+    "@vscode/vsce-sign",
+    "electron-winstaller",
+    "esbuild",
+    "node-pty",
+    "protobufjs",
+    "sharp"
+  ]
 }

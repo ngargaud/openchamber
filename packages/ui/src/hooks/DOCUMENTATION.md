@@ -117,6 +117,10 @@ A hook here owns the lifetime of what it subscribes to. Mechanics that another m
 - iOS grants `navigator.wakeLock` only inside a tap, so the native app uses its own idle-timer plugin. Android drops the wake lock when the app leaves the screen, so it is requested again on visibility.
 - In-flight archive retries stay quiet and never open a trust prompt from a background pass.
 
+- `useHasMqttBrokers` reads saved brokers on mount and updates on the storage
+  and `openchamber:mqtt-brokers-changed` events. The event-tasks sidebar page
+  appears only while at least one broker is configured.
+
 ## Decisions
 
 ### Why the chat timeline uses gesture generations and not timer windows

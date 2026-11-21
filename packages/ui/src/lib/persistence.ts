@@ -677,7 +677,7 @@ async function _flushSettingsUpdate({ keepalive = false }: { keepalive?: boolean
           return;
         } catch (error) {
           if (!isSettingsRuntimeContextCurrent(context)) return;
-          console.warn('Failed to update settings via runtime settings API:', error);
+          console.debug('Failed to update settings via runtime settings API:', error);
         }
       }
 
@@ -695,7 +695,7 @@ async function _flushSettingsUpdate({ keepalive = false }: { keepalive?: boolean
 
         if (!isSettingsRuntimeContextCurrent(context)) return;
         if (!response.ok) {
-          console.warn('Failed to update shared settings via API:', response.status, response.statusText);
+          console.debug('Failed to update shared settings via API:', response.status, response.statusText);
           forgetSentSettings();
           dispatchSettingsSaveState('error');
           return;
@@ -717,7 +717,7 @@ async function _flushSettingsUpdate({ keepalive = false }: { keepalive?: boolean
         }
       } catch (error) {
         if (isSettingsRuntimeContextCurrent(context)) {
-          console.warn('Failed to update shared settings via API:', error);
+          console.debug('Failed to update shared settings via API:', error);
           forgetSentSettings();
           dispatchSettingsSaveState('error');
         }

@@ -837,6 +837,11 @@ the browser, and a second meaning there confuses both.
 
 ## Invariants
 
+### MQTT settings
+
+- Broker URLs accept `mqtt://`, `mqtts://`, `ws://` and `wss://`. WebSocket URLs keep their path, so `wss://mqtt.example.com:8084/mqtt` reaches the proxy's `/mqtt` endpoint. Use `wss://` for a remote broker behind a TLS reverse proxy; `mqtt://` needs a directly reachable TCP port.
+- The broker URL field shows the accepted schemes as visible helper text. Its placeholder is prefilled and never visible.
+
 ### Drafts, selection and policies
 
 - Settings project selection leaves the chat, session list and file tree in place. Provider detail selection is page-local because the chat's provider selection records a manual model choice.

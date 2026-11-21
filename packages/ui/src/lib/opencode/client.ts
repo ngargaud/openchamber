@@ -2177,7 +2177,7 @@ class OpencodeService {
       }
       return null
     } catch (error) {
-      console.warn("Failed to resolve filesystem home directory:", error)
+      console.debug("Failed to resolve filesystem home directory:", error)
       return null
     }
   }

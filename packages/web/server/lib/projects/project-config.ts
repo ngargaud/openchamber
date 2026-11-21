@@ -2,6 +2,7 @@ import { DateTime, IANAZone } from 'luxon';
 import { CronExpressionParser } from 'cron-parser';
 import { z } from 'zod';
 import { readProcessInstance } from '../scheduled-tasks/process-instance.js';
+import { normalizeMqttTrigger } from '../mqtt/config-normalizer.js';
 import { asNonEmptyString, isBoolean, isRecord, isString } from '../shared/object-guards.js';
 import type { promises as fsPromises } from 'node:fs';
 import type { FileHandle } from 'node:fs/promises';
@@ -263,13 +264,8 @@ const normalizeSchedule = (value: ScheduledTaskInput['schedule'], existingSchedu
   }
 
   const cron = clampLength(asNonEmptyString(value.cron) || '', MAX_CRON_LENGTH);
-  if (!cron) {
-    throw new Error('schedule.cron is required for cron schedule');
-  }
-
-  if (!validateCronExpression(cron, timezone)) {
-    throw new Error('schedule.cron is invalid');
-  }
+  if (!cron) throw new Error('schedule.cron is required for cron schedule');
+  if (!validateCronExpression(cron, timezone)) throw new Error('schedule.cron is invalid');
 
   return { kind, cron, timezone };
 };
@@ -394,7 +390,16 @@ const normalizeTaskForStorage = (value: JsonValue | ScheduledTaskInput, options:
     ? value.enabled
     : (existingTask?.enabled ?? true);
 
-  const schedule = normalizeSchedule(value.schedule, existingTask?.schedule);
+  const mqttProvided = value.mqtt !== undefined;
+  const scheduleProvided = value.schedule !== undefined;
+  const toMqtt = mqttProvided && !scheduleProvided;
+  const toSchedule = scheduleProvided && !mqttProvided;
+  const hasMqtt = !toSchedule && (mqttProvided || Boolean(existingTask?.mqtt));
+  const schedule = toMqtt ? null : normalizeSchedule(value.schedule, existingTask?.schedule);
+  if (!schedule && !hasMqtt) throw new Error('schedule is required');
+  const mqtt = toSchedule
+    ? undefined
+    : normalizeMqttTrigger(value.mqtt, existingTask?.mqtt);
   const targetSessionId = asNonEmptyString(value.targetSessionId);
   if (value.targetSessionId != null && value.targetSessionId !== '' && !targetSessionId) throw new Error('targetSessionId is invalid');
   if (targetSessionId && !/^[A-Za-z0-9_-]{4,128}$/.test(targetSessionId)) throw new Error('targetSessionId is invalid');
@@ -429,14 +434,9 @@ const normalizeTaskForStorage = (value: JsonValue | ScheduledTaskInput, options:
     updatedAt: refreshUpdatedAt ? nowMs : baseState.updatedAt ?? nowMs,
   };
 
-  const storedTask: ScheduledTask = {
-    id,
-    name,
-    enabled,
-    schedule,
-    execution,
-    state,
-  };
+  const storedTask: ScheduledTask = { id, name, enabled, execution, state };
+  if (schedule) storedTask.schedule = schedule;
+  if (mqtt) storedTask.mqtt = mqtt;
   if (loopFile) storedTask.loopFile = loopFile;
   if (runInWorktree) storedTask.runInWorktree = true;
   if (baseBranchRaw) storedTask.baseBranch = baseBranchRaw;
