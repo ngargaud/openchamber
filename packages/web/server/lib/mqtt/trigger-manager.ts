@@ -8,7 +8,7 @@ import type {
   MqttTasksRuntime,
 } from './types.js';
 
-const DEFAULT_BROKER = process.env.OPENCHAMBER_MQTT_URL || process.env.MQTT_URL || 'mqtt://localhost:1883';
+const DEFAULT_BROKER = 'mqtt://localhost:1883';
 const DEDUP_TTL_MS = 60_000;
 const MIN_INTERVAL_DEFAULT = 0;
 
@@ -50,14 +50,8 @@ export const createMqttTriggerManager = (deps: TriggerManagerDependencies) => {
   };
 
   const brokerForTask = (task: MqttTask) => asNonEmptyString(task.mqtt?.broker) || DEFAULT_BROKER;
-  const usernameForTask = (task: MqttTask) => asNonEmptyString(task.mqtt?.username)
-    || asNonEmptyString(process.env.OPENCHAMBER_MQTT_USERNAME)
-    || asNonEmptyString(process.env.MQTT_USERNAME)
-    || undefined;
-  const passwordForTask = (task: MqttTask) => asNonEmptyString(task.mqtt?.password)
-    || asNonEmptyString(process.env.OPENCHAMBER_MQTT_PASSWORD)
-    || asNonEmptyString(process.env.MQTT_PASSWORD)
-    || undefined;
+  const usernameForTask = (task: MqttTask) => asNonEmptyString(task.mqtt?.username) || undefined;
+  const passwordForTask = (task: MqttTask) => asNonEmptyString(task.mqtt?.password) || undefined;
   const qosForTask = (task: MqttTask): MqttQos => task.mqtt?.qos === 1 || task.mqtt?.qos === 2 ? task.mqtt.qos : 0;
   const higherQos = (a: MqttQos, b: MqttQos): MqttQos => a > b ? a : b;
   const subscriptionKey = (group: Omit<SubscriptionGroup, 'qos' | 'tasks'>) => (

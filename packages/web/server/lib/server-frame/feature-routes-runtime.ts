@@ -49,6 +49,7 @@ import { registerProjectIconRoutes } from '../appearance/project-icon-routes.js'
 import { registerProviderLogoRoutes } from '../appearance/provider-logo-routes.js';
 import { registerScheduledTaskRoutes } from '../scheduled-tasks/routes.js';
 import { registerMqttRoutes } from '../mqtt/routes.js';
+import { createMqttBrokerStore } from '../mqtt/broker-store.js';
 import { fillScheduledWorktreeBridge } from '../scheduled-tasks/worktree-bridge.js';
 import { createTrackedItemsService } from '../tracked-items/service.js';
 import { createProviderReadCache } from '../provider-read-cache/index.js';
@@ -461,7 +462,8 @@ export const createFeatureRoutesRuntime = (dependencies: FeatureRuntimeDependenc
       writeSseEvent,
     });
 
-    registerMqttRoutes(app, { mqttClient: routeDependencies.mqttClient ?? null });
+    const mqttBrokerStore = createMqttBrokerStore({ fsPromises, path, dataDir: openchamberDataDir });
+    registerMqttRoutes(app, { mqttClient: routeDependencies.mqttClient ?? null, mqttBrokerStore });
     registerOpenChamberSessionRoutes(app, {
       readSettingsFromDiskMigrated,
       sanitizeProjects,

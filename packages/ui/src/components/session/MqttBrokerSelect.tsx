@@ -10,7 +10,35 @@ export const MqttBrokerSelect: React.FC<{
   t: Translation;
   onSelect: (broker: MqttBroker) => void;
 }> = ({ value, t, onSelect }) => {
-  const brokers = readMqttBrokers();
+  const [brokers, setBrokers] = React.useState<MqttBroker[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await readMqttBrokers();
+        if (!cancelled) setBrokers(list);
+      } catch {
+        void 0;
+      }
+    })();
+    const onEvent = () => {
+      void (async () => {
+        try {
+          const list = await readMqttBrokers();
+          if (!cancelled) setBrokers(list);
+        } catch {
+          void 0;
+        }
+      })();
+    };
+    window.addEventListener('openchamber:mqtt-brokers-changed', onEvent);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('openchamber:mqtt-brokers-changed', onEvent);
+    };
+  }, []);
+
   const matched = brokers.find((broker) => broker.url === value);
 
   return (

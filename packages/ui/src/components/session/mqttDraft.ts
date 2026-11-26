@@ -1,12 +1,18 @@
 import { readMqttBrokers } from '@/lib/mqttBrokers';
 import type { ScheduledTaskDraft } from './scheduledTaskEditorDraft';
 
-export const applyDefaultMqttBroker = (
+export const applyDefaultMqttBroker = async (
   draft: ScheduledTaskDraft,
   mode: 'scheduled' | 'event',
-): ScheduledTaskDraft => {
+): Promise<ScheduledTaskDraft> => {
   if (mode !== 'event' || draft.mqtt.broker.trim()) return draft;
-  const [first] = readMqttBrokers();
+  let brokers: Awaited<ReturnType<typeof readMqttBrokers>> = [];
+  try {
+    brokers = await readMqttBrokers();
+  } catch {
+    brokers = [];
+  }
+  const [first] = brokers;
   if (!first) return draft;
   return {
     ...draft,

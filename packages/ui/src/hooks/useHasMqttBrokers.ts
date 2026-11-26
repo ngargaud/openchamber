@@ -1,16 +1,36 @@
 import * as React from 'react';
-import { hasMqttBrokers } from '@/lib/mqttBrokers';
+import { readMqttBrokers } from '@/lib/mqttBrokers';
 
 export const useHasMqttBrokers = (): boolean => {
-  const [available, setAvailable] = React.useState(hasMqttBrokers);
+  const [available, setAvailable] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('openchamber.mqtt.brokers');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) && parsed.length > 0;
+    } catch {
+      return false;
+    }
+  });
 
   React.useEffect(() => {
-    const update = () => setAvailable(hasMqttBrokers());
-    window.addEventListener('storage', update);
-    window.addEventListener('openchamber:mqtt-brokers-changed', update);
+    let cancelled = false;
+    const update = async () => {
+      try {
+        const brokers = await readMqttBrokers();
+        if (!cancelled) setAvailable(brokers.length > 0);
+      } catch {
+        if (!cancelled) setAvailable(false);
+      }
+    };
+    void update();
+    const onEvent = () => { void update(); };
+    window.addEventListener('storage', onEvent);
+    window.addEventListener('openchamber:mqtt-brokers-changed', onEvent);
     return () => {
-      window.removeEventListener('storage', update);
-      window.removeEventListener('openchamber:mqtt-brokers-changed', update);
+      cancelled = true;
+      window.removeEventListener('storage', onEvent);
+      window.removeEventListener('openchamber:mqtt-brokers-changed', onEvent);
     };
   }, []);
 

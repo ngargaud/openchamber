@@ -18,7 +18,7 @@ A task may carry an `mqtt` field instead of a `schedule`:
 
 - `topic` (required): MQTT topic, may include `+` / `#` wildcards.
 - `qos`: 0/1/2 (default 0).
-- `broker`: broker URL, using `mqtt://`, `mqtts://`, `ws://` or `wss://` (default `OPENCHAMBER_MQTT_URL` or `mqtt://localhost:1883`). Use `wss://` for a TLS WebSocket endpoint, for example `wss://mqtt.example.com:443/mqtt`.
+- `broker`: broker URL, using `mqtt://`, `mqtts://`, `ws://` or `wss://` (default `mqtt://localhost:1883`). Use `wss://` for a TLS WebSocket endpoint, for example `wss://mqtt.example.com:443/mqtt`.
 - `username` / `password`: optional auth copied from the saved broker.
 - `payloadTemplate`: prompt template with `{{payload}}`, `{{topic}}`, `{{payload.key}}` or nested paths.
 - `topicTemplate`: template for the topic value shown to the prompt.

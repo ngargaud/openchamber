@@ -106,18 +106,23 @@ export function ScheduledTaskEditorDialog(props: {
     if (!open) {
       return;
     }
-    const nextDraft = applyDefaultMqttBroker(toDraft(task, {
-      providerID: currentProviderID,
-      modelID: currentModelID,
-      variant: currentVariant,
-      agent: currentAgentName,
-    }), mode);
-    nextDraft.triggerType = mode === 'event' ? 'mqtt' : 'schedule';
-    setDraft(nextDraft);
-    setShowCommandAutocomplete(false);
-    setShowFileMention(false);
-    setCommandQuery('');
-    setMentionQuery('');
+    let cancelled = false;
+    (async () => {
+      const nextDraft = await applyDefaultMqttBroker(toDraft(task, {
+        providerID: currentProviderID,
+        modelID: currentModelID,
+        variant: currentVariant,
+        agent: currentAgentName,
+      }), mode);
+      if (cancelled) return;
+      nextDraft.triggerType = mode === 'event' ? 'mqtt' : 'schedule';
+      setDraft(nextDraft);
+      setShowCommandAutocomplete(false);
+      setShowFileMention(false);
+      setCommandQuery('');
+      setMentionQuery('');
+    })();
+    return () => { cancelled = true; };
   }, [mode, open, task, currentProviderID, currentModelID, currentVariant, currentAgentName]);
 
   const variantOptions = React.useMemo(

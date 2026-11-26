@@ -6,18 +6,30 @@ import { useI18n } from '@/lib/i18n';
 import { SettingsPageLayout } from '@/components/sections/shared/SettingsPageLayout';
 import { SettingsSection } from '@/components/sections/shared/SettingsSection';
 import { runtimeFetch } from '@/lib/runtime-fetch';
-import { readMqttBrokers, writeMqttBrokers } from '@/lib/mqttBrokers';
+import { readMqttBrokers, writeMqttBrokers, type MqttBroker } from '@/lib/mqttBrokers';
 import { generateUuid } from '@/lib/uuid';
 
 export function MqttBrokersPage() {
   const { t } = useI18n();
-  const [brokers, setBrokers] = React.useState(() => readMqttBrokers());
+  const [brokers, setBrokers] = React.useState<MqttBroker[]>([]);
   const [name, setName] = React.useState('');
   const [url, setUrl] = React.useState('mqtt://localhost:1883');
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [testing, setTesting] = React.useState(false);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await readMqttBrokers();
+        if (!cancelled) setBrokers(list);
+      } catch {
+        void 0;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const testConnection = async () => {
     if (!url.trim()) { toast.error(t('settings.mqtt.toast.urlRequired')); return; }
     setTesting(true);
@@ -40,19 +52,19 @@ export function MqttBrokersPage() {
     }
   };
 
-  const add = () => {
+  const add = async () => {
     if (!url.trim()) { toast.error(t('settings.mqtt.toast.urlRequired')); return; }
     const next = [...brokers, { id: generateUuid(), name: name.trim() || url.trim(), url: url.trim(), username: username.trim(), password }];
     setBrokers(next);
-    writeMqttBrokers(next);
+    await writeMqttBrokers(next);
     setName(''); setUrl('mqtt://localhost:1883'); setUsername(''); setPassword('');
     toast.success(t('settings.mqtt.toast.saved'));
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     const next = brokers.filter((b) => b.id !== id);
     setBrokers(next);
-    writeMqttBrokers(next);
+    await writeMqttBrokers(next);
   };
 
   return (
