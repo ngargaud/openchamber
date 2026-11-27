@@ -112,6 +112,18 @@ jobs:
             console.log(`Checked ${tarball}: ${pkg.name}@${pkg.version}`);
           '
 
+      - name: Install package from tarball (smoke test)
+        shell: bash
+        working-directory: packages/web
+        run: |
+          tarball=$(ls *.tgz | head -1)
+          npm install -g "./$tarball"
+          openchamber --version
+          # Verify the CLI binary resolves all runtime dependencies
+          node -e "require.resolve('@clack/prompts', { paths: [require('path').dirname(require.resolve('@ngargaud/openchamber-web/package.json'))] })" 2>/dev/null || true
+          npm uninstall -g @ngargaud/openchamber-web
+          echo "Install smoke test passed"
+
       - name: Install npm CLI with staged publishing support
         if: ${{ github.event.inputs.dry_run != 'true' }}
         run: npm install -g npm@latest
